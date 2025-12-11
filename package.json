@@ -39,7 +39,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/fbodrums/react-super-mask"
+    "url": "git+https://github.com/fbodrums/react-super-mask.git"
   },
   "bugs": {
     "url": "https://github.com/fbodrums/react-super-mask/issues"
