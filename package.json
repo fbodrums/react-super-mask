@@ -37,12 +37,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/react-mask-library"
+    "url": "https://github.com/fbodrums/react-super-mask"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/react-mask-library/issues"
+    "url": "https://github.com/fbodrums/react-super-mask/issues"
   },
-  "homepage": "https://github.com/yourusername/react-mask-library#readme",
+  "homepage": "https://github.com/fbodrums/react-super-mask#readme",
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": ">=16.8.0"

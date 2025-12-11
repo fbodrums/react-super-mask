@@ -16,9 +16,9 @@ Uma biblioteca moderna de máscaras de input para React, inspirada no jQuery Mas
 ## 📦 Instalação
 
 ```bash
-npm install react-mask-library
+npm install react-super-mask
 # ou
-yarn add react-mask-library
+yarn add react-super-mask
 ```
 
 ## 🎯 Uso Básico
@@ -26,7 +26,7 @@ yarn add react-mask-library
 ### Com Hook `useMask`
 
 ```tsx
-import { useMask } from 'react-mask-library';
+import { useMask } from 'react-super-mask';
 
 function PhoneInput() {
   const phoneRef = useMask({
@@ -41,7 +41,7 @@ function PhoneInput() {
 ### Com Componente `MaskedInput`
 
 ```tsx
-import { MaskedInput } from 'react-mask-library';
+import { MaskedInput } from 'react-super-mask';
 
 function App() {
   return (
@@ -194,7 +194,7 @@ const ref = useMask({
 Remove a máscara do valor:
 
 ```tsx
-import { unmask } from 'react-mask-library';
+import { unmask } from 'react-super-mask';
 
 const masked = '(11) 98765-4321';
 const unmasked = unmask(masked); // '11987654321'
@@ -205,7 +205,7 @@ const unmasked = unmask(masked); // '11987654321'
 Verifica se o valor está completo:
 
 ```tsx
-import { isComplete } from 'react-mask-library';
+import { isComplete } from 'react-super-mask';
 
 isComplete('(11) 98765-4321', '(00) 00000-0000'); // true
 isComplete('(11) 9876', '(00) 00000-0000'); // false
