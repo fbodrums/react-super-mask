@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 
-interface MaskOptions {
+export interface MaskOptions {
   mask: string;
   reverse?: boolean;
   placeholder?: string;
@@ -18,8 +18,14 @@ interface MaskOptions {
   onKeyPress?: (value: string, event: React.KeyboardEvent<HTMLInputElement>) => void;
 }
 
-// Definições padrão de máscara
-const DEFAULT_TRANSLATION: Record<string, { pattern: RegExp; optional?: boolean }> = {
+export interface Translation {
+  pattern: RegExp;
+  optional?: boolean;
+  recursive?: boolean;
+  fallback?: string;
+}
+
+const DEFAULT_TRANSLATION: Record<string, Translation> = {
   '0': { pattern: /\d/ },
   '9': { pattern: /\d/, optional: true },
   '#': { pattern: /\d/, optional: true, recursive: true },
@@ -27,26 +33,12 @@ const DEFAULT_TRANSLATION: Record<string, { pattern: RegExp; optional?: boolean 
   'S': { pattern: /[a-zA-Z]/ },
   'X': { pattern: /[a-zA-Z0-9]/, optional: true }
 };
-
-/**
- * Hook personalizado para aplicar máscaras em inputs
- * 
- * @example
- * const inputRef = useMask({
- *   mask: '(00) 00000-0000',
- *   placeholder: '(00) 00000-0000'
- * });
- */
 export const useMask = (options: MaskOptions) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const optionsRef = useRef(options);
-
-  // Atualiza as opções sem recriar o hook
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
-
-  // Parser de máscara
   const parseMask = useCallback((mask: string) => {
     const translation = { ...DEFAULT_TRANSLATION, ...options.translation };
     const maskArray: Array<{ char: string; type: 'literal' | 'pattern'; pattern?: RegExp; optional?: boolean; recursive?: boolean }> = [];
@@ -77,72 +69,206 @@ export const useMask = (options: MaskOptions) => {
 
     return maskArray;
   }, [options.translation]);
+  const extractValidChars = useCallback((value: string, maskArray: any[]): string => {
+    const translation = { ...DEFAULT_TRANSLATION, ...options.translation };
+    const allPatterns = maskArray
+      .filter(item => item.type === 'pattern')
+      .map(item => item.pattern)
+      .filter(Boolean);
 
-  // Aplica a máscara ao valor
+    if (allPatterns.length === 0) return '';
+
+    const combinedPattern = new RegExp(allPatterns.map(p => p.source).join('|'), 'g');
+    const matches = value.match(combinedPattern);
+    return matches ? matches.join('') : '';
+  }, [options.translation]);
   const applyMask = useCallback((value: string, mask: string, reverse = false): { masked: string; isComplete: boolean } => {
-    if (!mask || !value) return { masked: '', isComplete: false };
+    if (!mask) return { masked: '', isComplete: false };
+    if (!value) return { masked: '', isComplete: false };
 
     const maskArray = parseMask(mask);
-    const cleanValue = value.replace(/\D/g, '');
 
     if (reverse) {
-      return applyReverseMask(cleanValue, maskArray);
+      return applyReverseMask(value, maskArray);
     }
 
-    let maskedValue = '';
+    const validChars = extractValidChars(value, maskArray);
     let valueIndex = 0;
-    let isComplete = true;
+    let maskedValue = '';
+    let requiredChars = 0;
+    let filledChars = 0;
+    let recursiveItem: any = null;
 
-    for (let i = 0; i < maskArray.length && valueIndex < cleanValue.length; i++) {
+    for (const item of maskArray) {
+      if (item.recursive) {
+        recursiveItem = item;
+        break;
+      }
+    }
+
+    for (let i = 0; i < maskArray.length; i++) {
       const maskItem = maskArray[i];
 
       if (maskItem.type === 'literal') {
         maskedValue += maskItem.char;
       } else if (maskItem.pattern) {
-        const char = cleanValue[valueIndex];
+        if (!maskItem.optional) {
+          requiredChars++;
+        }
 
-        if (maskItem.pattern.test(char)) {
-          maskedValue += char;
-          valueIndex++;
+        if (maskItem.recursive) {
+
+          while (valueIndex < validChars.length && maskItem.pattern.test(validChars[valueIndex])) {
+            maskedValue += validChars[valueIndex];
+            valueIndex++;
+            filledChars++;
+          }
+        } else if (valueIndex < validChars.length) {
+          const char = validChars[valueIndex];
+          if (maskItem.pattern.test(char)) {
+            maskedValue += char;
+            valueIndex++;
+            filledChars++;
+          } else if (!maskItem.optional) {
+            break;
+          }
         } else if (!maskItem.optional) {
-          isComplete = false;
           break;
         }
       }
     }
 
-    // Verifica se todos os caracteres obrigatórios foram preenchidos
-    if (valueIndex < cleanValue.length || valueIndex === 0) {
-      isComplete = false;
-    }
+    const isComplete = filledChars >= requiredChars && valueIndex >= validChars.length;
 
     return { masked: maskedValue, isComplete };
-  }, [parseMask]);
+  }, [parseMask, extractValidChars]);
 
-  // Aplica máscara reversa (útil para valores monetários)
   const applyReverseMask = useCallback((value: string, maskArray: any[]): { masked: string; isComplete: boolean } => {
+    const validChars = extractValidChars(value, maskArray);
+    if (!validChars) return { masked: '', isComplete: false };
+
     let maskedValue = '';
-    let valueIndex = value.length - 1;
+    let valueIndex = validChars.length - 1;
+    let requiredChars = 0;
+    let filledChars = 0;
+    let digitCount = 0;
+    for (const item of maskArray) {
+      if (item.type === 'pattern' && !item.optional) {
+        requiredChars++;
+      }
+    }
 
-    for (let i = maskArray.length - 1; i >= 0 && valueIndex >= 0; i--) {
-      const maskItem = maskArray[i];
+    // Identifica se é máscara monetária (tem vírgula como separador decimal)
+    const isMoneyMask = maskArray.some(item => item.type === 'literal' && item.char === ',');
+    const decimalIndex = isMoneyMask ? maskArray.findIndex(item => item.type === 'literal' && item.char === ',') : -1;
 
-      if (maskItem.type === 'literal') {
-        maskedValue = maskItem.char + maskedValue;
-      } else if (maskItem.pattern) {
-        const char = value[valueIndex];
+    if (isMoneyMask && decimalIndex >= 0) {
+      let cents = '';
+      const centsCount = maskArray.length - 1 - decimalIndex;
 
-        if (maskItem.pattern.test(char)) {
-          maskedValue = char + maskedValue;
+      for (let i = 0; i < centsCount && valueIndex >= 0; i++) {
+        const char = validChars[valueIndex];
+        if (/\d/.test(char)) {
+          cents = char + cents;
           valueIndex--;
+          filledChars++;
+        }
+      }
+
+      while (cents.length < centsCount) {
+        cents = '0' + cents;
+      }
+
+      maskedValue = ',' + cents;
+
+      let integerDigits = '';
+      for (let i = decimalIndex - 1; i >= 0; i--) {
+        const maskItem = maskArray[i];
+
+        if (maskItem.type === 'literal' && maskItem.char === '.') {
+          continue;
+        }
+
+        if (maskItem.type === 'pattern') {
+          if (maskItem.recursive) {
+            while (valueIndex >= 0 && maskItem.pattern.test(validChars[valueIndex])) {
+              integerDigits = validChars[valueIndex] + integerDigits;
+              valueIndex--;
+              filledChars++;
+            }
+          } else if (valueIndex >= 0 && maskItem.pattern.test(validChars[valueIndex])) {
+            integerDigits = validChars[valueIndex] + integerDigits;
+            valueIndex--;
+            filledChars++;
+          }
+        }
+      }
+
+      if (integerDigits === '') {
+        integerDigits = '0';
+      } else {
+        integerDigits = integerDigits.replace(/^0+/, '') || '0';
+      }
+
+      let formattedInteger = '';
+      for (let i = integerDigits.length - 1; i >= 0; i--) {
+        if (formattedInteger.length > 0 && (integerDigits.length - 1 - i) % 3 === 0) {
+          formattedInteger = '.' + formattedInteger;
+        }
+        formattedInteger = integerDigits[i] + formattedInteger;
+      }
+
+      maskedValue = formattedInteger + maskedValue;
+    } else {
+      for (let i = maskArray.length - 1; i >= 0; i--) {
+        const maskItem = maskArray[i];
+
+        if (maskItem.type === 'literal') {
+          if (maskItem.char === '.' && digitCount > 0 && digitCount % 3 === 0) {
+            maskedValue = maskItem.char + maskedValue;
+            digitCount = 0;
+          } else if (maskItem.char !== '.') {
+            maskedValue = maskItem.char + maskedValue;
+          }
+        } else if (maskItem.pattern) {
+          if (maskItem.recursive) {
+            while (valueIndex >= 0 && maskItem.pattern.test(validChars[valueIndex])) {
+              if (digitCount > 0 && digitCount % 3 === 0) {
+                maskedValue = '.' + maskedValue;
+              }
+              maskedValue = validChars[valueIndex] + maskedValue;
+              valueIndex--;
+              filledChars++;
+              digitCount++;
+            }
+          } else if (valueIndex >= 0) {
+            const char = validChars[valueIndex];
+            if (maskItem.pattern.test(char)) {
+              if (digitCount > 0 && digitCount % 3 === 0) {
+                maskedValue = '.' + maskedValue;
+              }
+              maskedValue = char + maskedValue;
+              valueIndex--;
+              filledChars++;
+              digitCount++;
+            } else if (!maskItem.optional) {
+              break;
+            }
+          } else if (!maskItem.optional) {
+            break;
+          }
         }
       }
     }
 
-    return { masked: maskedValue, isComplete: valueIndex < 0 };
-  }, []);
+    if (maskedValue.startsWith('.')) {
+      maskedValue = maskedValue.substring(1);
+    }
 
-  // Handler de mudança de valor
+    const isComplete = filledChars >= requiredChars && valueIndex < 0;
+    return { masked: maskedValue, isComplete };
+  }, [extractValidChars]);
+
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = event.target;
     const { mask, reverse, clearIfNotMatch, onChange, onComplete, onInvalid } = optionsRef.current;
@@ -168,7 +294,6 @@ export const useMask = (options: MaskOptions) => {
     }
   }, [applyMask]);
 
-  // Handler de foco
   const handleFocus = useCallback((event: React.FocusEvent<HTMLInputElement>) => {
     const { selectOnFocus } = optionsRef.current;
 
@@ -177,7 +302,6 @@ export const useMask = (options: MaskOptions) => {
     }
   }, []);
 
-  // Handler de tecla pressionada
   const handleKeyPress = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
     const { onKeyPress } = optionsRef.current;
 
@@ -185,26 +309,21 @@ export const useMask = (options: MaskOptions) => {
       onKeyPress(event.currentTarget.value, event);
     }
   }, []);
-
-  // Aplica eventos ao input
   useEffect(() => {
     const input = inputRef.current;
     if (!input) return;
 
     const { mask, reverse, placeholder } = optionsRef.current;
 
-    // Define placeholder se fornecido
     if (placeholder) {
       input.placeholder = placeholder;
     }
 
-    // Aplica máscara inicial se houver valor
     if (input.value) {
       const { masked } = applyMask(input.value, mask, reverse);
       input.value = masked;
     }
 
-    // Adiciona event listeners
     input.addEventListener('input', handleChange as any);
     input.addEventListener('focus', handleFocus as any);
     input.addEventListener('keypress', handleKeyPress as any);
@@ -216,23 +335,57 @@ export const useMask = (options: MaskOptions) => {
     };
   }, [applyMask, handleChange, handleFocus, handleKeyPress]);
 
-  return inputRef;
+  return { inputRef };
 };
 
-/**
- * Função auxiliar para obter o valor sem máscara
- */
-export const unmask = (value: string): string => {
-  return value.replace(/\D/g, '');
+export const unmask = (value: string, mask?: string): string => {
+  if (!mask) {
+    return value.replace(/[^\w]/g, '');
+  }
+  const translation = { ...DEFAULT_TRANSLATION };
+  let cleanValue = value;
+  let isEscaped = false;
+
+  for (let i = 0; i < mask.length; i++) {
+    const char = mask[i];
+    if (char === '\\' && !isEscaped) {
+      isEscaped = true;
+      continue;
+    }
+    if (isEscaped || !translation[char]) {
+      cleanValue = cleanValue.replace(new RegExp(`\\${char}`, 'g'), '');
+    }
+    isEscaped = false;
+  }
+
+  return cleanValue;
 };
 
-/**
- * Função auxiliar para validar se um valor está completo de acordo com a máscara
- */
-export const isComplete = (value: string, mask: string): boolean => {
-  const cleanValue = value.replace(/\D/g, '');
-  const maskDigits = mask.replace(/[^\d#0]/g, '').length;
-  return cleanValue.length >= maskDigits;
+export const isComplete = (value: string, mask: string, translation?: Record<string, { pattern: RegExp; optional?: boolean }>): boolean => {
+  if (!mask || !value) return false;
+
+  const trans = translation || DEFAULT_TRANSLATION;
+  let requiredChars = 0;
+  let filledChars = 0;
+  let isEscaped = false;
+  for (let i = 0; i < mask.length; i++) {
+    const char = mask[i];
+    if (char === '\\' && !isEscaped) {
+      isEscaped = true;
+      continue;
+    }
+    if (isEscaped || !trans[char]) {
+      isEscaped = false;
+      continue;
+    }
+    if (!trans[char].optional) {
+      requiredChars++;
+    }
+  }
+  const cleanValue = unmask(value, mask);
+  filledChars = cleanValue.length;
+
+  return filledChars >= requiredChars;
 };
 
 export default useMask;

@@ -1,6 +1,7 @@
 {
   "name": "react-super-mask",
   "version": "1.0.0",
+  "type": "module",
   "description": "A modern React input mask library inspired by jQuery Mask Plugin",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -16,7 +17,8 @@
     "test:coverage": "jest --coverage",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "format": "prettier --write 'src/**/*.{ts,tsx}'",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "example": "cd example && npm install && npm run dev"
   },
   "keywords": [
     "react",
@@ -33,7 +35,7 @@
     "hooks",
     "typescript"
   ],
-  "author": "Your Name",
+  "author": "Fabio Rafael",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -70,8 +72,9 @@
     "react-dom": "^18.2.0",
     "rollup": "^4.9.1",
     "rollup-plugin-peer-deps-external": "^2.2.4",
-    "rollup-plugin-terser": "^7.0.2",
+    "@rollup/plugin-terser": "^0.4.4",
     "ts-jest": "^29.1.1",
+    "tslib": "^2.6.2",
     "typescript": "^5.3.3"
   },
   "jest": {

@@ -1,7 +1,7 @@
 import React, { forwardRef, InputHTMLAttributes } from 'react';
-import { useMask } from './useMask';
+import { useMask } from '../hook/useMask';
 
-interface MaskedInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onKeyPress'> {
+interface MaskedInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'onKeyPress' | 'onInvalid'> {
   mask: string;
   reverse?: boolean;
   maskPlaceholder?: string;
@@ -45,7 +45,7 @@ export const MaskedInput = forwardRef<HTMLInputElement, MaskedInputProps>((props
     ...inputProps
   } = props;
 
-  const internalRef = useMask({
+  const { inputRef: internalRef } = useMask({
     mask,
     reverse,
     placeholder: maskPlaceholder || placeholder,
