@@ -1,29 +1,29 @@
-# React Mask Library
+# React Super Mask
 
-Uma biblioteca moderna de máscaras de input para React, inspirada no jQuery Mask Plugin, mas sem dependências do jQuery.
+A modern React input mask library inspired by jQuery Mask Plugin, but without jQuery dependencies.
 
-## 🚀 Características
+## 🚀 Features
 
-- ⚡ **Zero dependências** - Não precisa do jQuery
-- 🎯 **TypeScript** - Totalmente tipado
-- 📦 **Leve** - Menos de 2KB minificado
-- 🔄 **Máscara reversa** - Perfeito para valores monetários
+- ⚡ **Zero dependencies** - No jQuery needed
+- 🎯 **TypeScript** - Fully typed
+- 📦 **Lightweight** - Less than 2KB minified
+- 🔄 **Reverse mask** - Perfect for monetary values
 - 🎨 **Callbacks** - onChange, onComplete, onInvalid
-- 🔧 **Customizável** - Defina suas próprias regras de máscara
-- ♿ **Acessível** - Compatível com screen readers
-- 🌐 **Universal** - Funciona com SSR
+- 🔧 **Customizable** - Define your own mask rules
+- ♿ **Accessible** - Compatible with screen readers
+- 🌐 **Universal** - Works with SSR
 
-## 📦 Instalação
+## 📦 Installation
 
 ```bash
 npm install react-super-mask
-# ou
+# or
 yarn add react-super-mask
 ```
 
-## 🎯 Uso Básico
+## 🎯 Basic Usage
 
-### Com Hook `useMask`
+### With Hook `useMask`
 
 ```tsx
 import { useMask } from 'react-super-mask';
@@ -31,14 +31,14 @@ import { useMask } from 'react-super-mask';
 function PhoneInput() {
   const phoneRef = useMask({
     mask: '(00) 00000-0000',
-    placeholder: 'Digite seu telefone'
+    placeholder: 'Enter your phone'
   });
 
   return <input ref={phoneRef.inputRef} />;
 }
 ```
 
-### Com Componente `MaskedInput`
+### With Component `MaskedInput`
 
 ```tsx
 import { MaskedInput } from 'react-super-mask';
@@ -47,16 +47,16 @@ function App() {
   return (
     <MaskedInput
       mask="(00) 00000-0000"
-      placeholder="Digite seu telefone"
-      onComplete={(value) => console.log('Completo:', value)}
+      placeholder="Enter your phone"
+      onComplete={(value) => console.log('Complete:', value)}
     />
   );
 }
 ```
 
-## 📚 Exemplos de Máscaras
+## 📚 Mask Examples
 
-### Telefone Brasileiro
+### Brazilian Phone
 
 ```tsx
 const phoneRef = useMask({
@@ -64,7 +64,7 @@ const phoneRef = useMask({
 });
 ```
 
-### CPF
+### CPF (Brazilian ID)
 
 ```tsx
 const cpfRef = useMask({
@@ -73,7 +73,7 @@ const cpfRef = useMask({
 });
 ```
 
-### CNPJ
+### CNPJ (Brazilian Company ID)
 
 ```tsx
 const cnpjRef = useMask({
@@ -81,25 +81,25 @@ const cnpjRef = useMask({
 });
 ```
 
-### CEP
+### ZIP Code
 
 ```tsx
-const cepRef = useMask({
+const zipRef = useMask({
   mask: '00000-000',
   selectOnFocus: true
 });
 ```
 
-### Data
+### Date
 
 ```tsx
 const dateRef = useMask({
   mask: '00/00/0000',
-  placeholder: 'DD/MM/AAAA'
+  placeholder: 'DD/MM/YYYY'
 });
 ```
 
-### Cartão de Crédito
+### Credit Card
 
 ```tsx
 const cardRef = useMask({
@@ -107,7 +107,7 @@ const cardRef = useMask({
 });
 ```
 
-### Moeda (Máscara Reversa)
+### Currency (Reverse Mask)
 
 ```tsx
 const moneyRef = useMask({
@@ -116,7 +116,7 @@ const moneyRef = useMask({
 });
 ```
 
-### Placa de Carro (Mercosul)
+### Car License Plate (Mercosur)
 
 ```tsx
 const plateRef = useMask({
@@ -128,28 +128,28 @@ const plateRef = useMask({
 });
 ```
 
-## 🎨 API do Hook `useMask`
+## 🎨 `useMask` Hook API
 
-### Opções
+### Options
 
 ```typescript
 interface MaskOptions {
-  // Padrão da máscara (ex: '(00) 00000-0000')
+  // Mask pattern (e.g., '(00) 00000-0000')
   mask: string;
   
-  // Aplica máscara da direita para esquerda
+  // Apply mask from right to left
   reverse?: boolean;
   
-  // Placeholder do input
+  // Input placeholder
   placeholder?: string;
   
-  // Limpa o campo se não corresponder à máscara
+  // Clear field if it doesn't match the mask
   clearIfNotMatch?: boolean;
   
-  // Seleciona todo o texto ao focar
+  // Select all text on focus
   selectOnFocus?: boolean;
   
-  // Traduções customizadas
+  // Custom translations
   translation?: Record<string, {
     pattern: RegExp;
     optional?: boolean;
@@ -164,34 +164,34 @@ interface MaskOptions {
 }
 ```
 
-### Traduções Padrão
+### Default Translations
 
-| Caractere | Descrição | Regex |
-|-----------|-----------|-------|
-| `0` | Dígito obrigatório | `/\d/` |
-| `9` | Dígito opcional | `/\d/` |
-| `#` | Dígito recursivo opcional | `/\d/` |
-| `A` | Alfanumérico | `/[a-zA-Z0-9]/` |
-| `S` | Letra | `/[a-zA-Z]/` |
-| `X` | Alfanumérico opcional | `/[a-zA-Z0-9]/` |
+| Character | Description | Regex |
+|-----------|-------------|-------|
+| `0` | Required digit | `/\d/` |
+| `9` | Optional digit | `/\d/` |
+| `#` | Optional recursive digit | `/\d/` |
+| `A` | Alphanumeric | `/[a-zA-Z0-9]/` |
+| `S` | Letter | `/[a-zA-Z]/` |
+| `X` | Optional alphanumeric | `/[a-zA-Z0-9]/` |
 
-### Caracteres Literais
+### Literal Characters
 
-Qualquer caractere que não esteja nas traduções é considerado literal e será inserido automaticamente.
+Any character that is not in the translations is considered literal and will be inserted automatically.
 
-Para usar um caractere de tradução como literal, escape com `\`:
+To use a translation character as literal, escape it with `\`:
 
 ```tsx
 const ref = useMask({
-  mask: '\\A000' // Exibe "A" seguido de 3 dígitos
+  mask: '\\A000' // Displays "A" followed by 3 digits
 });
 ```
 
-## 🔧 Funções Auxiliares
+## 🔧 Helper Functions
 
 ### `unmask(value: string): string`
 
-Remove a máscara do valor:
+Removes the mask from the value:
 
 ```tsx
 import { unmask } from 'react-super-mask';
@@ -202,7 +202,7 @@ const unmasked = unmask(masked); // '11987654321'
 
 ### `isComplete(value: string, mask: string): boolean`
 
-Verifica se o valor está completo:
+Checks if the value is complete:
 
 ```tsx
 import { isComplete } from 'react-super-mask';
@@ -211,52 +211,221 @@ isComplete('(11) 98765-4321', '(00) 00000-0000'); // true
 isComplete('(11) 9876', '(00) 00000-0000'); // false
 ```
 
+### `mask(value: string, mask: string, options?: { reverse?: boolean; translation?: Record<string, Translation> }): string`
+
+Applies a mask to any string, returning the formatted value. This function is useful for formatting values that are not in inputs, such as display in tables, cards, static text, etc.
+
+**Parameters:**
+- `value`: The value to be formatted (string)
+- `mask`: The mask to be applied (e.g., `"(00) 00000-0000"`, `"000.000.000-00"`)
+- `options` (optional):
+  - `reverse`: If `true`, applies reverse mask (useful for monetary values)
+  - `translation`: Custom translations for mask characters
+
+**Returns:** The formatted value with the mask applied (string)
+
+**Examples:**
+
+```tsx
+import { mask } from 'react-super-mask';
+
+// Format phone
+mask('11987654321', '(00) 00000-0000'); // "(11) 98765-4321"
+
+// Format CPF
+mask('12345678900', '000.000.000-00'); // "123.456.789-00"
+
+// Format ZIP code
+mask('01310100', '00000-000'); // "01310-100"
+
+// Format credit card
+mask('1234567890123456', '0000 0000 0000 0000'); // "1234 5678 9012 3456"
+```
+
+**Using Options:**
+
+```tsx
+import { mask } from 'react-super-mask';
+
+// Reverse mask for monetary values
+mask('123456', '#.##0,00', { reverse: true }); // "1.234,56"
+mask('75', '#.##0,00', { reverse: true }); // "0,75"
+mask('1000000', '#.##0,00', { reverse: true }); // "10.000,00"
+
+// Custom translation for license plates
+mask('ABC1234', 'AAA-0A00', {
+  translation: {
+    'A': { pattern: /[A-Z]/ },
+    '0': { pattern: /[0-9]/ }
+  }
+}); // "ABC-1234"
+
+// Custom translation for alphanumeric codes
+mask('AB12CD34', 'XX-00-XX-00', {
+  translation: {
+    'X': { pattern: /[A-Z]/ },
+    '0': { pattern: /[0-9]/ }
+  }
+}); // "AB-12-CD-34"
+
+// Combining reverse and custom translation
+mask('123456789', '#.##0,00', {
+  reverse: true,
+  translation: {
+    '#': { pattern: /\d/, optional: true, recursive: true },
+    '0': { pattern: /\d/ }
+  }
+}); // "1.234.567,89"
+```
+
+**Usage in JSX/HTML:**
+
+```tsx
+import { mask } from 'react-super-mask';
+
+function UserCard({ user }) {
+  return (
+    <div>
+      <h3>{user.name}</h3>
+      <p>Phone: {mask(user.phone, '(00) 00000-0000')}</p>
+      <p>CPF: {mask(user.cpf, '000.000.000-00')}</p>
+      <p>Balance: $ {mask(user.balance.toString(), '#.##0,00', { reverse: true })}</p>
+    </div>
+  );
+}
+```
+
+**Usage in tables:**
+
+```tsx
+import { mask } from 'react-super-mask';
+
+function UsersTable({ users }) {
+  return (
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Phone</th>
+          <th>CPF</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {users.map(user => (
+          <tr key={user.id}>
+            <td>{user.name}</td>
+            <td>{mask(user.phone, '(00) 00000-0000')}</td>
+            <td>{mask(user.cpf, '000.000.000-00')}</td>
+            <td>$ {mask(user.balance.toString(), '#.##0,00', { reverse: true })}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+```
+
+**Advanced usage with options:**
+
+```tsx
+import { mask } from 'react-super-mask';
+
+function ProductCard({ product }) {
+  // Format price with reverse mask
+  const formattedPrice = mask(
+    product.price.toString(), 
+    '#.##0,00', 
+    { reverse: true }
+  );
+
+  // Format SKU with custom translation (only uppercase letters and numbers)
+  const formattedSKU = mask(
+    product.sku, 
+    'XXX-0000', 
+    {
+      translation: {
+        'X': { pattern: /[A-Z0-9]/ },
+        '0': { pattern: /\d/ }
+      }
+    }
+  );
+
+  return (
+    <div>
+      <h3>{product.name}</h3>
+      <p>SKU: {formattedSKU}</p>
+      <p>Price: ${formattedPrice}</p>
+    </div>
+  );
+}
+
+// Format different currency formats
+function formatCurrency(value, locale = 'pt-BR') {
+  if (locale === 'pt-BR') {
+    // Brazilian format: 1.234,56
+    return mask(value.toString(), '#.##0,00', { reverse: true });
+  } else {
+    // US format: 1,234.56
+    return mask(value.toString(), '#,##0.00', { reverse: true });
+  }
+}
+
+formatCurrency('123456', 'pt-BR'); // "1.234,56"
+formatCurrency('123456', 'en-US'); // "1,234.56"
+```
+
+**Difference between `useMask` and `mask()`:**
+
+- **`useMask`**: React hook for inputs (with events, validation, callbacks, etc.)
+- **`mask()`**: Pure utility function to format any string (can be used anywhere, not just in inputs)
+
 ## 🎯 Callbacks
 
 ### onChange
 
-Disparado a cada mudança no input:
+Triggered on every input change:
 
 ```tsx
 const ref = useMask({
   mask: '(00) 00000-0000',
   onChange: (value) => {
-    console.log('Valor atual:', value);
+    console.log('Current value:', value);
   }
 });
 ```
 
 ### onComplete
 
-Disparado quando a máscara está completa:
+Triggered when the mask is complete:
 
 ```tsx
 const ref = useMask({
   mask: '000.000.000-00',
   onComplete: (value) => {
-    console.log('CPF completo:', value);
-    // Enviar para API, validar, etc.
+    console.log('Complete CPF:', value);
+    // Send to API, validate, etc.
   }
 });
 ```
 
 ### onInvalid
 
-Disparado quando o valor não corresponde à máscara:
+Triggered when the value doesn't match the mask:
 
 ```tsx
 const ref = useMask({
   mask: '00000-000',
   clearIfNotMatch: true,
   onInvalid: (value) => {
-    console.log('CEP inválido:', value);
+    console.log('Invalid ZIP code:', value);
   }
 });
 ```
 
-## 🌟 Exemplos Avançados
+## 🌟 Advanced Examples
 
-### Máscara Dinâmica
+### Dynamic Mask
 
 ```tsx
 function DynamicPhone() {
@@ -265,7 +434,7 @@ function DynamicPhone() {
   const phoneRef = useMask({
     mask,
     onChange: (value) => {
-      // Muda para celular se começar com 9
+      // Switch to mobile if it starts with 9
       if (value.length > 5 && value[5] === '9') {
         setMask('(00) 00000-0000');
       } else {
@@ -278,7 +447,7 @@ function DynamicPhone() {
 }
 ```
 
-### Validação em Tempo Real
+### Real-time Validation
 
 ```tsx
 function ValidatedCPF() {
@@ -298,13 +467,13 @@ function ValidatedCPF() {
         ref={cpfRef.inputRef}
         style={{ borderColor: isValid ? 'green' : 'red' }}
       />
-      {isValid && <span>✓ CPF válido</span>}
+      {isValid && <span>✓ Valid CPF</span>}
     </div>
   );
 }
 ```
 
-### Formatação de Moeda
+### Currency Formatting
 
 ```tsx
 function MoneyInput() {
@@ -315,13 +484,13 @@ function MoneyInput() {
       const numericValue = parseFloat(
         value.replace(/\./g, '').replace(',', '.')
       );
-      console.log('Valor numérico:', numericValue);
+      console.log('Numeric value:', numericValue);
     }
   });
 
   return (
     <div style={{ position: 'relative' }}>
-      <span style={{ position: 'absolute', left: 10, top: 10 }}>R$</span>
+      <span style={{ position: 'absolute', left: 10, top: 10 }}>$</span>
       <input 
         ref={moneyRef.inputRef}
         style={{ paddingLeft: 35 }}
@@ -331,32 +500,32 @@ function MoneyInput() {
 }
 ```
 
-## 🔍 Comparação com jQuery Mask Plugin
+## 🔍 Comparison with jQuery Mask Plugin
 
-| Recurso | jQuery Mask | React Mask Library |
-|---------|-------------|-------------------|
-| Dependências | jQuery | Nenhuma |
+| Feature | jQuery Mask | React Super Mask |
+|---------|-------------|------------------|
+| Dependencies | jQuery | None |
 | TypeScript | ❌ | ✅ |
-| Tamanho | ~2KB | ~2KB |
-| Máscaras reversas | ✅ | ✅ |
+| Size | ~2KB | ~2KB |
+| Reverse masks | ✅ | ✅ |
 | Callbacks | ✅ | ✅ |
 | SSR | ❌ | ✅ |
 | React Hooks | ❌ | ✅ |
 
-## 🤝 Contribuindo
+## 🤝 Contributing
 
-Contribuições são bem-vindas! Por favor:
+Contributions are welcome! Please:
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📝 Licença
+## 📝 License
 
 MIT © [Fabio Rafael]
 
-## 🙏 Agradecimentos
+## 🙏 Acknowledgments
 
-Inspirado no excelente [jQuery Mask Plugin](https://github.com/igorescobar/jQuery-Mask-Plugin) por Igor Escobar.
+Inspired by the excellent [jQuery Mask Plugin](https://github.com/igorescobar/jQuery-Mask-Plugin) by Igor Escobar.

@@ -388,4 +388,266 @@ export const isComplete = (value: string, mask: string, translation?: Record<str
   return filledChars >= requiredChars;
 };
 
+type MaskArrayItem = {
+  char: string;
+  type: 'literal' | 'pattern';
+  pattern?: RegExp;
+  optional?: boolean;
+  recursive?: boolean;
+};
+
+const parseMaskPure = (mask: string, translation: Record<string, Translation> = DEFAULT_TRANSLATION): MaskArrayItem[] => {
+  const maskArray: MaskArrayItem[] = [];
+  let isEscaped = false;
+
+  for (let i = 0; i < mask.length; i++) {
+    const char = mask[i];
+
+    if (char === '\\' && !isEscaped) {
+      isEscaped = true;
+      continue;
+    }
+
+    if (isEscaped || !translation[char]) {
+      maskArray.push({ char, type: 'literal' });
+      isEscaped = false;
+    } else {
+      maskArray.push({
+        char,
+        type: 'pattern',
+        pattern: translation[char].pattern,
+        optional: translation[char].optional,
+        recursive: translation[char].recursive
+      });
+    }
+  }
+
+  return maskArray;
+};
+
+const extractValidCharsPure = (value: string, maskArray: MaskArrayItem[]): string => {
+  const allPatterns = maskArray
+    .filter(item => item.type === 'pattern')
+    .map(item => item.pattern)
+    .filter(Boolean) as RegExp[];
+
+  if (allPatterns.length === 0) return '';
+
+  const combinedPattern = new RegExp(allPatterns.map(p => p.source).join('|'), 'g');
+  const matches = value.match(combinedPattern);
+  return matches ? matches.join('') : '';
+};
+
+const applyReverseMaskPure = (value: string, maskArray: MaskArrayItem[]): { masked: string; isComplete: boolean } => {
+  const validChars = extractValidCharsPure(value, maskArray);
+  if (!validChars) return { masked: '', isComplete: false };
+
+  let maskedValue = '';
+  let valueIndex = validChars.length - 1;
+  let requiredChars = 0;
+  let filledChars = 0;
+  let digitCount = 0;
+
+  for (const item of maskArray) {
+    if (item.type === 'pattern' && !item.optional) {
+      requiredChars++;
+    }
+  }
+
+  // Identifica se é máscara monetária (tem vírgula como separador decimal)
+  const isMoneyMask = maskArray.some(item => item.type === 'literal' && item.char === ',');
+  const decimalIndex = isMoneyMask ? maskArray.findIndex(item => item.type === 'literal' && item.char === ',') : -1;
+
+  if (isMoneyMask && decimalIndex >= 0) {
+    let cents = '';
+    const centsCount = maskArray.length - 1 - decimalIndex;
+
+    for (let i = 0; i < centsCount && valueIndex >= 0; i++) {
+      const char = validChars[valueIndex];
+      if (/\d/.test(char)) {
+        cents = char + cents;
+        valueIndex--;
+        filledChars++;
+      }
+    }
+
+    while (cents.length < centsCount) {
+      cents = '0' + cents;
+    }
+
+    maskedValue = ',' + cents;
+
+    let integerDigits = '';
+    for (let i = decimalIndex - 1; i >= 0; i--) {
+      const maskItem = maskArray[i];
+
+      if (maskItem.type === 'literal' && maskItem.char === '.') {
+        continue;
+      }
+
+      if (maskItem.type === 'pattern') {
+        if (maskItem.recursive) {
+          while (valueIndex >= 0 && maskItem.pattern!.test(validChars[valueIndex])) {
+            integerDigits = validChars[valueIndex] + integerDigits;
+            valueIndex--;
+            filledChars++;
+          }
+        } else if (valueIndex >= 0 && maskItem.pattern!.test(validChars[valueIndex])) {
+          integerDigits = validChars[valueIndex] + integerDigits;
+          valueIndex--;
+          filledChars++;
+        }
+      }
+    }
+
+    if (integerDigits === '') {
+      integerDigits = '0';
+    } else {
+      integerDigits = integerDigits.replace(/^0+/, '') || '0';
+    }
+
+    let formattedInteger = '';
+    for (let i = integerDigits.length - 1; i >= 0; i--) {
+      if (formattedInteger.length > 0 && (integerDigits.length - 1 - i) % 3 === 0) {
+        formattedInteger = '.' + formattedInteger;
+      }
+      formattedInteger = integerDigits[i] + formattedInteger;
+    }
+
+    maskedValue = formattedInteger + maskedValue;
+  } else {
+    for (let i = maskArray.length - 1; i >= 0; i--) {
+      const maskItem = maskArray[i];
+
+      if (maskItem.type === 'literal') {
+        if (maskItem.char === '.' && digitCount > 0 && digitCount % 3 === 0) {
+          maskedValue = maskItem.char + maskedValue;
+          digitCount = 0;
+        } else if (maskItem.char !== '.') {
+          maskedValue = maskItem.char + maskedValue;
+        }
+      } else if (maskItem.pattern) {
+        if (maskItem.recursive) {
+          while (valueIndex >= 0 && maskItem.pattern.test(validChars[valueIndex])) {
+            if (digitCount > 0 && digitCount % 3 === 0) {
+              maskedValue = '.' + maskedValue;
+            }
+            maskedValue = validChars[valueIndex] + maskedValue;
+            valueIndex--;
+            filledChars++;
+            digitCount++;
+          }
+        } else if (valueIndex >= 0) {
+          const char = validChars[valueIndex];
+          if (maskItem.pattern.test(char)) {
+            if (digitCount > 0 && digitCount % 3 === 0) {
+              maskedValue = '.' + maskedValue;
+            }
+            maskedValue = char + maskedValue;
+            valueIndex--;
+            filledChars++;
+            digitCount++;
+          } else if (!maskItem.optional) {
+            break;
+          }
+        } else if (!maskItem.optional) {
+          break;
+        }
+      }
+    }
+  }
+
+  if (maskedValue.startsWith('.')) {
+    maskedValue = maskedValue.substring(1);
+  }
+
+  const isComplete = filledChars >= requiredChars && valueIndex < 0;
+  return { masked: maskedValue, isComplete };
+};
+
+/**
+ * Aplica uma máscara a qualquer string, retornando o valor formatado
+ * 
+ * @param value - O valor a ser formatado
+ * @param mask - A máscara a ser aplicada (ex: "(00) 00000-0000", "000.000.000-00")
+ * @param options - Opções adicionais
+ * @param options.reverse - Se true, aplica máscara reversa (útil para valores monetários)
+ * @param options.translation - Traduções customizadas para caracteres da máscara
+ * @returns O valor formatado com a máscara aplicada
+ * 
+ * @example
+ * ```ts
+ * import { mask } from 'react-super-mask';
+ * 
+ * // Formatar telefone
+ * mask('11987654321', '(00) 00000-0000'); // "(11) 98765-4321"
+ * 
+ * // Formatar CPF
+ * mask('12345678900', '000.000.000-00'); // "123.456.789-00"
+ * 
+ * // Formatar valor monetário (reverso)
+ * mask('123456', '#.##0,00', { reverse: true }); // "1.234,56"
+ * 
+ * // Usar em HTML/JSX
+ * <span>{mask(userPhone, '(00) 00000-0000')}</span>
+ * ```
+ */
+export const mask = (
+  value: string,
+  mask: string,
+  options?: {
+    reverse?: boolean;
+    translation?: Record<string, Translation>;
+  }
+): string => {
+  if (!mask) return '';
+  if (!value) return '';
+
+  const translation = { ...DEFAULT_TRANSLATION, ...options?.translation };
+  const maskArray = parseMaskPure(mask, translation);
+
+  if (options?.reverse) {
+    return applyReverseMaskPure(value, maskArray).masked;
+  }
+
+  const validChars = extractValidCharsPure(value, maskArray);
+  let valueIndex = 0;
+  let maskedValue = '';
+  let requiredChars = 0;
+  let filledChars = 0;
+
+  for (let i = 0; i < maskArray.length; i++) {
+    const maskItem = maskArray[i];
+
+    if (maskItem.type === 'literal') {
+      maskedValue += maskItem.char;
+    } else if (maskItem.pattern) {
+      if (!maskItem.optional) {
+        requiredChars++;
+      }
+
+      if (maskItem.recursive) {
+        while (valueIndex < validChars.length && maskItem.pattern.test(validChars[valueIndex])) {
+          maskedValue += validChars[valueIndex];
+          valueIndex++;
+          filledChars++;
+        }
+      } else if (valueIndex < validChars.length) {
+        const char = validChars[valueIndex];
+        if (maskItem.pattern.test(char)) {
+          maskedValue += char;
+          valueIndex++;
+          filledChars++;
+        } else if (!maskItem.optional) {
+          break;
+        }
+      } else if (!maskItem.optional) {
+        break;
+      }
+    }
+  }
+
+  return maskedValue;
+};
+
 export default useMask;

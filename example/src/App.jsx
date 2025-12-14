@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMask, MaskedInput } from 'react-super-mask';
+import { useMask, MaskedInput, mask } from 'react-super-mask';
 import './App.css';
 
 function App() {
@@ -133,6 +133,37 @@ function App() {
           placeholder="00.000.000/0000-00"
           onComplete={(value) => setCompleted(prev => [...prev, `CNPJ: ${value}`])}
         />
+      </div>
+
+      <div className="test-section">
+        <h2>✨ Função mask() - Formatar qualquer texto</h2>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
+          Use a função <code>mask()</code> para formatar valores diretamente no HTML/JSX, sem precisar de inputs:
+        </p>
+        <div style={{
+          background: '#f5f5f5',
+          color: '#333',
+          padding: '15px',
+          borderRadius: '8px',
+          fontFamily: 'monospace',
+          fontSize: '14px'
+        }}>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>Telefone:</strong> {mask('11987654321', '(00) 00000-0000')}
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>CPF:</strong> {mask('12345678900', '000.000.000-00')}
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>CEP:</strong> {mask('01310100', '00000-000')}
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <strong>Valor monetário:</strong> {mask('123456', '#.##0,00', { reverse: true })}
+          </div>
+          <div>
+            <strong>Cartão:</strong> {mask('1234567890123456', '0000 0000 0000 0000')}
+          </div>
+        </div>
       </div>
 
       {completed.length > 0 && (
